@@ -5,24 +5,28 @@ import org.apache.spark.sql.SparkSession
 import org.semanticweb.owlapi.io.OWLParserException
 import owl.spark.parsing.OWLXMLSyntaxParsing
 
+
 object OWLXMLSyntaxOWLAxiomsRDDBuilder extends OWLXMLSyntaxParsing {
 
   private val logger = Logger(this.getClass)
 
-  /*def build(spark: SparkSession, filePath: String): OWLAxiomsRDD = {
+  def build(spark: SparkSession, filePath: String): OWLAxiomsRDD = {
     build(spark, OWLXMLSyntaxOWLExpressionsRDDBuilder.build(spark, filePath))
   }
 
-  // FIXME: It has to be ensured that expressionsRDD is in functional syntax
-  def build(spark: SparkSession, expressionsRDD: OWLExpressionsRDD): OWLAxiomsRDD = {
-    expressionsRDD.map(expression => {
-      try makeAxiom(expression)
+  def build(spark: SparkSession, owlRecordsRDD: (OWLExpressionsRDD,OWLExpressionsRDD,OWLExpressionsRDD)): OWLAxiomsRDD = {
+    val xmlVersionRDD = owlRecordsRDD._1.first()
+    val owlPrefixRDD = owlRecordsRDD._2.first()
+    val owlExpressionsRDD = owlRecordsRDD._3
+
+    owlExpressionsRDD.map(expressionRDD => {
+      try makeAxiom(xmlVersionRDD,owlPrefixRDD,expressionRDD)
       catch {
         case exception: OWLParserException =>
-          logger.warn("Parser error for line " + expression + ": " + exception.getMessage)
+          logger.warn("Parser error for line " + expressionRDD + ": " + exception.getMessage)
           null
       }
     }).filter(_ != null)
-  }*/
+  }
 
 }

@@ -3,9 +3,12 @@ package owl.spark.rdd
 import owl.spark._
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.serializer.KryoSerializer
 
 object OWLXMLSyntaxOWLAxiomsRDDGenerator extends App {
+
+  println("================================")
+  println("|        OWL/XML Parser        |")
+  println("================================")
 
   val syntax = Syntax.OWLXML
   val input: String = getClass.getResource("/univ-bench.owl").getPath
@@ -23,9 +26,8 @@ object OWLXMLSyntaxOWLAxiomsRDDGenerator extends App {
 
   Logger.getLogger("akka").setLevel(Level.OFF)
   Logger.getLogger(this.getClass).setLevel(Level.ERROR)
-  val RDFXMLBuilder = new OWLXMLSyntaxOWLExpressionsRDDBuilder
-  val rdd = RDFXMLBuilder.build(sparkSession, input)
-
+  val rdd = sparkSession.owl(syntax)(input)
+  rdd.foreach(println(_))
   sparkSession.stop
 
 }

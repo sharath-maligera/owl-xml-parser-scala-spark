@@ -19,5 +19,5 @@ package object rdd {
     * type declaration to define an alias to hold RDD[OWLAxiom]s
     * where each OWLAxiom is of type OWLClass, OWLObjectProperty, OWLDataProperty etc.,
     */
-  type OWLAxiomsRDD = RDD[OWLAxiom]
+  type OWLAxiomsRDD = RDD[Set[OWLAxiom]]
 }
