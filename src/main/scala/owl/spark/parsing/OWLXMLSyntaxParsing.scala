@@ -18,6 +18,7 @@ Singleton instance of type OWLXMLSyntaxParsing
   */
 object OWLXMLSyntaxParsing {
 
+  // "static"/"class" - level functionality to define OWLXML syntax pattern
   val OWLXMLSyntaxPattern: Map[String,Map[String,String]] = Map(
     "versionPattern" -> Map(
       "beginTag" -> "<?xml",
@@ -51,31 +52,41 @@ object OWLXMLSyntaxParsing {
 trait OWLXMLSyntaxParsing {
 
   private val logger = Logger(classOf[OWLXMLSyntaxParsing])
-  private def man = OWLManager.createOWLOntologyManager()
 
+  /**
+    * definition to build Owl Axioms out of expressions
+    * @param xmlString : xmlVersion string
+    * @param prefixString: owlxml prefix string
+    * @param expression: owl expressions of owlxml syntax
+    * @return A set consisting OWL Axioms built out of owl expressions
+    * */
   def makeAxiom(xmlString:String, prefixString:String, expression: String): Set[OWLAxiom] = {
+
+    // compose a string consisting of xml version, owlxml prefixes, owlxml expressions
     val modelText = xmlString + "\n" + prefixString + "\n" + expression + "\n" + "</rdf:RDF>"
+
+    // object to manage the ontology
     val manager = OWLManager.createOWLOntologyManager()
+
+    // load an ontology from file
     val ontology = try {
+      // load an ontology from an input stream
       manager.loadOntologyFromOntologyDocument(new StringDocumentSource(modelText))
     } catch {
       case e: OWLOntologyCreationException => null
     }
 
     val extractedAxioms = if (ontology!=null){
-
+      // get the ontology format
       val format = manager.getOntologyFormat(ontology)
       val owlxmlFormat = new OWLXMLDocumentFormat
-      if (format != null && format.isPrefixOWLDocumentFormat) { // copy all the prefixes from OWL document format to OWL XML format
+
+      // copy all the prefixes from OWL document format to OWL XML format
+      if (format != null && format.isPrefixOWLDocumentFormat) {
         owlxmlFormat.copyPrefixesFrom(format.asPrefixOWLDocumentFormat)
       }
 
-      /*try{
-        manager.saveOntology(ontology)
-
-      } catch {
-        case e: OWLOntologyStorageException => null
-      }*/
+      // get axioms from the loaded ontology
       val axioms = ontology.axioms().toScala[Set]
       axioms
     } else {
@@ -83,21 +94,29 @@ trait OWLXMLSyntaxParsing {
       null
     }
     extractedAxioms
-
   }
-
 }
 
 
 class OWLXMLSyntaxExpressionBuilder(spark: SparkSession, val filePath: String) extends OWLXMLSyntaxParsing {
 
+  // define an empty RDD of generic type
   private var owlRecordRDD : org.apache.spark.rdd.RDD[String] = spark.sparkContext.emptyRDD
-  private val xmlVersionRDD= getRecord(OWLXMLSyntaxParsing.OWLXMLSyntaxPattern("versionPattern"))
-  private val owlPrefixRDD= getRecord(OWLXMLSyntaxParsing.OWLXMLSyntaxPattern("prefixPattern"))
+
+  // get xml version string as an RDD
+  private val xmlVersionRDD = getRecord(OWLXMLSyntaxParsing.OWLXMLSyntaxPattern("versionPattern"))
+
+  // get owlxml prefix string as an RDD
+  private val owlPrefixRDD = getRecord(OWLXMLSyntaxParsing.OWLXMLSyntaxPattern("prefixPattern"))
+
+  // get pattern for begin and end tags for owl expressions to be specified for hadoop stream
   private val owlRecordPatterns = OWLXMLSyntaxParsing.OWLXMLSyntaxPattern.filterKeys(_ != "versionPattern").filterKeys(_!= "prefixPattern")
 
-
-
+  /**
+    * definition to get owl expressions from hadoop stream as RDD[String]
+    * @param pattern: a Map object consisting of key-value pairs to define begin and end tags
+    * @return OWlExpressionRDD
+    * */
   def getRecord(pattern: Map[String,String]): RDD[String] ={
     val config = new JobConf()
     val beginTag:String = pattern("beginTag")
@@ -111,12 +130,14 @@ class OWLXMLSyntaxExpressionBuilder(spark: SparkSession, val filePath: String) e
       classOf[org.apache.hadoop.io.Text], //class for the key
       classOf[org.apache.hadoop.io.Text]) //class for the value
 
-
     val recordRDD: RDD[String] = rawRDD.map { (x) => (x._1.toString) }
     recordRDD
   }
 
-
+  /**
+    * definition to get owl expressions for each patterns defined in OWLXMLSyntaxPattern
+    * @return : a tuple consisting of (RDD for xml version, RDD for owlxml prefixes, RDD for owl expressions)
+    * */
   def getOwlExpressions():(OWLExpressionsRDD,OWLExpressionsRDD,OWLExpressionsRDD) = {
     val unionOwlExpressionsRDD = for {
       (pattern, tags) <- owlRecordPatterns
@@ -125,10 +146,6 @@ class OWLXMLSyntaxExpressionBuilder(spark: SparkSession, val filePath: String) e
     val owlExpressionsRDD = unionOwlExpressionsRDD.reduce(_ union _)
     (xmlVersionRDD,owlPrefixRDD,owlExpressionsRDD)
   }
-
-
-
-
 }
 
 

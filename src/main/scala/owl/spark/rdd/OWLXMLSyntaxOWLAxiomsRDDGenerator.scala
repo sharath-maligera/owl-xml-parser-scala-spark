@@ -10,7 +10,10 @@ object OWLXMLSyntaxOWLAxiomsRDDGenerator extends App {
   println("|        OWL/XML Parser        |")
   println("================================")
 
+  // define the syntax of OWL file
   val syntax = Syntax.OWLXML
+
+  // get absolute path of the owl file
   val input: String = getClass.getResource("/univ-bench.owl").getPath
 
   /**
@@ -26,8 +29,13 @@ object OWLXMLSyntaxOWLAxiomsRDDGenerator extends App {
 
   Logger.getLogger("akka").setLevel(Level.OFF)
   Logger.getLogger(this.getClass).setLevel(Level.ERROR)
+
+  // get axioms as RDD[Set[OwlAxiom]]
   val rdd = sparkSession.owl(syntax)(input)
+
+  // print the contents of RDD
   rdd.foreach(println(_))
+
   sparkSession.stop
 
 }

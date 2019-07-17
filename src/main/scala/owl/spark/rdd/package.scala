@@ -16,7 +16,7 @@ package object rdd {
   type OWLExpressionsRDD = RDD[String]
 
   /**
-    * type declaration to define an alias to hold RDD[OWLAxiom]s
+    * type declaration to define an alias to hold RDD[Set[OWLAxiom]s]
     * where each OWLAxiom is of type OWLClass, OWLObjectProperty, OWLDataProperty etc.,
     */
   type OWLAxiomsRDD = RDD[Set[OWLAxiom]]
